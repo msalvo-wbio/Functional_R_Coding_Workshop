@@ -1,0 +1,16 @@
+
+    model {
+    for(j in 1:7){
+      beta[j] ~ dnorm(0, 0.1)
+    }
+    
+    for(i in 1:n){
+      logit(use[i]) <- beta[1] + beta[2] * crop[i] + beta[3] * developed[i] +
+                       beta[4] * grassland[i] + beta[5] * water[i] + beta[6] * wetland[i] +
+                       beta[7] * road.dist[i]
+                      
+      y[i] ~ dbern(use[i])
+    }
+    
+    }
+

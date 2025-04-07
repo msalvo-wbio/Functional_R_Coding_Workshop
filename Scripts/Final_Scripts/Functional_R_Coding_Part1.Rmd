@@ -1,0 +1,178 @@
+---
+title: "Functional_R_Coding"
+author: "Marco Salvo"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## What is Functional R Coding?
+
+Functional R coding is a coding concept which focuses on the creation of functions to perform repetitive tasks.
+One of the main reasons we use complex programming languages, such as R, is the availability of high level functions
+which allow us to perform complex tasks quickly. Many of us rely on functions found in base R and packages such as
+dplyr, glmer, etc to perform fairly complex coding tasks in one line of code. Unfortunately, there isn't always a function to do every task we need, as our data and analyses are often unique for each of us. We however can take the concepts used by the people who built R and R packages to make our lives easier and more streamlined.
+
+Function based coding is best suited for tasks which are repeated often and/or need to be reproducible for others to use. For simple tasks which only need to be done once, it may be faster to just write code that works through your data.
+
+```{r libraries, include=FALSE}
+library(datasets)
+library(tidyverse)
+```
+
+
+## Function Basics in R
+
+To start thinking like a functional programmer, we need to start at the very basics: What is a function? Why do we use them?
+
+Functions are pieces of code that take an input, perform some kind of operation on them, and return an output. 
+One of the most basic functions, is the print() function.
+
+```{r print function}
+print("Hello World")
+```
+
+The print function takes a character string, and returns it as output in your console. In this case we are not saving anything, but print can help us check progress on code, or see what an object says. We can see the documentation behind a function by putting a ? before the function name, like below.
+
+```{r print help, eval=FALSE}
+?print
+```
+
+This will explain to us what the function does, what arguments it accepts, and what output it may give. But what is this function doing behind the hood? We can see that by using View on the function:
+
+
+```{r print view, eval=FALSE}
+View(print)
+```
+
+In this case it's not super informative because print is a very simple function, but it gives us an idea of what's going on in the background.
+
+Let's look at a higher level function: lm(). lm lets us build linear models in R.
+```{r lm view, eval=FALSE}
+View(lm)
+```
+
+We can see now what a more complex function contains, and that there's a lot which goes into it! Let's build a simple linear model to just reiterate how we use a function. We will use the iris dataset, everyone's favorite introductory data to build a model.
+
+```{r iris lm}
+#load the data
+data(iris)
+
+#run a model
+model <- lm(Sepal.Length ~ Species, data = iris)
+
+#model summary
+summary(model)
+```
+
+We used three functions here:
+1) data: loaded the iris dataset into R
+2) lm: ran a linear model explaining sepal width as a function of plant species
+3) summary: gave us the model summary of our model
+
+Each of these functions took arguments we gave it, did something to the data associated with those arguments, and then returned something to us.
+
+This is great! But what happens when there isn't a function that does what you want?
+
+## Making Functions in R
+
+Sometimes, R just doesn't have a built in function to do what we want it to. One example that comes to mind is calculating the standard error around your data. The formula for standard error can be seen below:
+
+$SE = \frac{sd}{\sqrt{n}}$
+
+Let's say we want to report the standard error around each value in our iris dataset. We could do it this way:
+```{r SE long way}
+sd(iris$Sepal.Length)/sqrt(length(iris$Sepal.Length))
+sd(iris$Sepal.Width)/sqrt(length(iris$Sepal.Width))
+sd(iris$Petal.Length)/sqrt(length(iris$Petal.Length))
+sd(iris$Petal.Width)/sqrt(length(iris$Petal.Width))
+```
+
+As you can see, this takes four lines of code and a ton of repetition, which frankly is a waste of our valuable time.
+Instead we can make a function to do this! First, before we make this slightly more complex function, we can make a simple function such as a function to square a value, just to show how we build a function.
+
+Below we do a few things. the **function** function tells R we want to create a function. Within the parentheses, we provide R the arguments we want the function to accept. Inside the function **return** says what we want the function to give back to us. So in this case, we give the function a number *x* and it gives us back x to the second power.
+
+```{r square function}
+squared <- function(x){
+  return(x^2)
+}
+
+squared(2)
+```
+Now let's do something a little more complex and build a standard error function!
+
+We're going to do this in a few more parts than needed to make sure we can see how functions can be useful:
+```{r SE function}
+SE <- function(values) # a vector of numeric values
+  {
+  #calculate sd
+  fun.sd <- sd(values)
+  #calculate n
+  fun.n <- length(values)
+  #calculate se
+  se <- fun.sd/sqrt(fun.n)
+  
+  return(se)
+}
+```
+
+So here, we give our function, **SE** a vector of values. We then find the standard deviation of those values, and the number of values in the vector. We then calculate SE, and the function returns the SE value. Let's use it!
+
+```{r}
+SE(iris$Sepal.Length)
+```
+Super quick and much more interpretable than our non-function-based code! Now let's see how we can build on this to say, calculate the mean and se of all numeric columns in the iris dataframe.
+
+```{r mean se summary function}
+mean_se_summary <- function(df){
+  
+  #initialize vectors
+  means <- c()
+  SEs <- c()
+  names <- c()
+  
+  #for every column in the dataframe
+  for(i in 1:ncol(df)){
+    #if the class of the column is numeric
+    if(class(df[,i]) == 'numeric'){
+      #extract the:
+      means <- c(means, mean(df[,i])) #mean
+      SEs <- c(SEs, SE(df[,i])) #SE
+      names <- c(names, colnames(df)[i]) #name
+    } else { #if not numeric
+      next() #skip the column
+    }
+  }
+  
+  #combine to a data frame
+  output <- data.frame(value = names,
+                       mean = means,
+                       se = SEs)
+  
+  #return output
+  return(output)
+  
+}
+```
+
+We can now use this function to get a summary of all numeric variables in iris.
+```{r summarise iris}
+iris.sum <- mean_se_summary(iris)
+iris.sum
+```
+
+Awesome! Think about how long that would have taken if we tried to do that manually. And we can now repeat it for as many data frames as we want. For those of you more familiar with R, we know that tidyverse may help us do this even quicker, but for illustrative purposes we can see how this is useful. Let's now plot this just to show how it can be helpful.
+
+```{r plot iris summary}
+ggplot(iris.sum, aes(value, mean)) + 
+  geom_point() + 
+  geom_linerange(aes(ymin = mean - se, ymax = mean + se))
+```
+This starts to give us a good idea of how function based coding can be used to simplify tasks, and how we can combine custom built functions to allow our code to work for us.
+
